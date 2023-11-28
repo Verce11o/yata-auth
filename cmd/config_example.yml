@@ -1,0 +1,14 @@
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5432
+  PostgresqlUser: postgres
+  PostgresqlPassword: password
+  PostgresqlDbname: database
+
+app:
+  jwt:
+    secret: yata_auth_key
+    token_ttl_hours: 12
+    salt: yata_vercello_salt
+  port: 3999
+
