@@ -5,6 +5,14 @@ postgres:
   PostgresqlPassword: password
   PostgresqlDbname: database
 
+redis:
+  RedisHost: localhost
+  RedisPort: 6379
+  RedisUser:
+  RedisPassword:
+  RedisDB: 0
+
+
 app:
   jwt:
     secret: yata_auth_key

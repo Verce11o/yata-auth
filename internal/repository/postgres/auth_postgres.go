@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"github.com/Verce11o/yata-auth/internal/domain"
 	"github.com/Verce11o/yata-auth/internal/lib/grpc_errors"
 	pb "github.com/Verce11o/yata-protos/gen/go/sso"
 	"github.com/jmoiron/sqlx"
@@ -21,9 +23,17 @@ func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) 
 
 	q := "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id"
 
-	err := s.db.QueryRowxContext(ctx, q, input.Username, input.Email, input.Password).Scan(&id)
+	stmt, err := s.db.PreparexContext(ctx, q)
 
-	pgErr, ok := err.(*pq.Error)
+	if err != nil {
+		return 0, err
+	}
+
+	err = stmt.QueryRowxContext(ctx, input.GetUsername(), input.GetEmail(), input.GetPassword()).Scan(&id)
+
+	var pgErr *pq.Error
+	ok := errors.As(err, &pgErr)
+
 	if ok {
 		if pgErr.Code == "23505" {
 			return 0, grpc_errors.ErrEmailExists
@@ -36,17 +46,17 @@ func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) 
 	return id, nil
 }
 
-func (s *AuthPostgres) Login(ctx context.Context, input *pb.LoginRequest) (int, error) {
-	var userID int
+func (s *AuthPostgres) GetUser(ctx context.Context, email string) (domain.User, error) {
+	var user domain.User
 
-	q := "SELECT id FROM users WHERE email = $1 OR username = $2 AND password = $3"
+	q := "SELECT * FROM users WHERE email = $1"
 
-	err := s.db.QueryRowxContext(ctx, q, input.GetEmail(), input.GetUsername(), input.GetPassword()).Scan(&userID)
+	err := s.db.QueryRowxContext(ctx, q, email).StructScan(&user)
 
 	if err != nil {
-		return 0, grpc_errors.ErrInvalidCredentials
+		return domain.User{}, grpc_errors.ErrInvalidCredentials
 	}
 
-	return userID, nil
+	return user, nil
 
 }

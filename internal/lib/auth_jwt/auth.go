@@ -17,11 +17,11 @@ type JWTService struct {
 	config config.JWTConfig
 }
 
-func NewJWTService(JWTConfig config.JWTConfig) *JWTService {
-	return &JWTService{config: JWTConfig}
+func MakeJWTService(JWTConfig config.JWTConfig) JWTService {
+	return JWTService{config: JWTConfig}
 }
 
-func (j *JWTService) GenerateToken(userId int) (string, error) {
+func (j JWTService) GenerateToken(userId int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(j.config.TokenTTLHours) * time.Hour)),
@@ -33,7 +33,7 @@ func (j *JWTService) GenerateToken(userId int) (string, error) {
 	return token.SignedString([]byte(j.config.Secret))
 }
 
-func (j *JWTService) ParseToken(token string) (int, error) {
+func (j JWTService) ParseToken(token string) (int, error) {
 	parsedToken, err := jwt.ParseWithClaims(token, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(j.config.Secret), nil
 	})
@@ -50,7 +50,7 @@ func (j *JWTService) ParseToken(token string) (int, error) {
 	return claims.UserID, nil
 }
 
-func (j *JWTService) GenerateHashPassword(password string) string {
+func (j JWTService) GenerateHashPassword(password string) string {
 	hash := sha256.New()
 	hash.Write([]byte(password))
 

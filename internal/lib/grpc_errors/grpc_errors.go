@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 )
 
 var (
 	ErrEmailExists        = errors.New("email already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrNotFound           = errors.New("not found")
 )
 
 func ParseGRPCErrStatusCode(err error) codes.Code {
@@ -23,6 +25,10 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 	case errors.Is(err, ErrEmailExists):
 		return codes.AlreadyExists
 	case errors.Is(err, ErrInvalidCredentials):
+		return codes.Unauthenticated
+	case errors.Is(err, ErrNotFound):
+		return codes.NotFound
+	case errors.Is(err, redis.Nil):
 		return codes.NotFound
 	case errors.Is(err, context.Canceled):
 		return codes.Canceled

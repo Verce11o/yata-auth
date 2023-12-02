@@ -44,8 +44,3 @@ func (a *AuthGRPC) Login(ctx context.Context, input *pb.LoginRequest) (*pb.Login
 
 	return &pb.LoginResponse{Token: token}, nil
 }
-
-//
-//func (a *AuthGRPC) Logout(ctx context.Context, input *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-//
-//}

@@ -2,22 +2,21 @@ package repository
 
 import (
 	"context"
-	"github.com/Verce11o/yata-auth/internal/repository/postgres"
+	"github.com/Verce11o/yata-auth/internal/domain"
 	pb "github.com/Verce11o/yata-protos/gen/go/sso"
-	"github.com/jmoiron/sqlx"
 )
 
-type Auth interface {
+type Repository interface {
 	Register(ctx context.Context, input *pb.RegisterRequest) (int, error)
-	Login(ctx context.Context, input *pb.LoginRequest) (int, error)
+	GetUser(ctx context.Context, email string) (domain.User, error)
 }
 
-type Repository struct {
-	Auth
-}
-
-func NewRepository(db *sqlx.DB) *Repository {
-	return &Repository{
-		Auth: postgres.NewAuthPostgres(db),
-	}
-}
+//type Repository struct {
+//	UserSaver
+//}
+//
+//func NewRepository(db *sqlx.DB) *Repository {
+//	return &Repository{
+//		UserSaver: postgres.NewAuthPostgres(db),
+//	}
+//}

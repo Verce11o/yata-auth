@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/Verce11o/yata-auth/config"
 	authGrpc "github.com/Verce11o/yata-auth/internal/handler/grpc"
+	"github.com/Verce11o/yata-auth/internal/lib/auth_jwt"
 	"github.com/Verce11o/yata-auth/internal/lib/logger"
-	"github.com/Verce11o/yata-auth/internal/repository"
 	"github.com/Verce11o/yata-auth/internal/repository/postgres"
+	"github.com/Verce11o/yata-auth/internal/repository/redis"
 	"github.com/Verce11o/yata-auth/internal/service"
 	pb "github.com/Verce11o/yata-protos/gen/go/sso"
 	"google.golang.org/grpc"
@@ -21,11 +22,14 @@ func Run() {
 	cfg := config.LoadConfig()
 
 	db := postgres.NewPostgres(cfg)
-	repo := repository.NewRepository(db)
+	repo := postgres.NewAuthPostgres(db)
+
+	rdb := redis.NewRedis(cfg)
+	redis := redis.NewAuthRedis(rdb)
 
 	s := grpc.NewServer()
 
-	authService := service.NewAuthService(log, repo, cfg)
+	authService := service.NewAuthService(log, repo, redis, auth_jwt.MakeJWTService(cfg.App.JWT))
 
 	pb.RegisterAuthServer(s, authGrpc.NewAuthGRPC(log, authService))
 
