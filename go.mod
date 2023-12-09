@@ -3,8 +3,9 @@ module github.com/Verce11o/yata-auth
 go 1.21.3
 
 require (
-	github.com/Verce11o/yata-protos v0.0.0-20231201114959-f7f9d2378f04
+	github.com/Verce11o/yata-protos v0.0.0-20231207142731-fde0ac693670
 	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/google/uuid v1.3.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.2.0

@@ -7,8 +7,9 @@ import (
 )
 
 type Repository interface {
-	Register(ctx context.Context, input *pb.RegisterRequest) (int, error)
+	Register(ctx context.Context, input *pb.RegisterRequest) (string, error)
 	GetUser(ctx context.Context, email string) (domain.User, error)
+	GetUserByID(ctx context.Context, userID string) (domain.User, error)
 }
 
 //type Repository struct {

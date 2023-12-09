@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"github.com/Verce11o/yata-auth/internal/domain"
 	pb "github.com/Verce11o/yata-protos/gen/go/sso"
 )
 
 type Auth interface {
-	Register(ctx context.Context, input *pb.RegisterRequest) (int, error)
+	Register(ctx context.Context, input *pb.RegisterRequest) (string, error)
 	Login(ctx context.Context, input *pb.LoginRequest) (string, error)
+	GetByUUID(ctx context.Context, userID string) (domain.User, error)
 }
