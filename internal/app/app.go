@@ -30,7 +30,7 @@ func Run() {
 	repo := postgres.NewAuthPostgres(db, tracer.Tracer)
 
 	rdb := redis.NewRedis(cfg)
-	redis := redis.NewAuthRedis(rdb)
+	redis := redis.NewAuthRedis(rdb, tracer.Tracer)
 
 	s := grpc.NewServer(grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(
 		otelgrpc.WithTracerProvider(tracer.Provider),

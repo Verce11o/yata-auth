@@ -68,5 +68,26 @@ func (a *AuthService) GetByUUID(ctx context.Context, userID string) (domain.User
 	ctx, span := a.tracer.Start(ctx, "authService.GetByUUID")
 	defer span.End()
 
-	return a.repo.GetUserByID(ctx, userID)
+	cachedUser, err := a.redis.GetByIdCtx(ctx, userID)
+
+	if err != nil {
+		a.log.Errorf("cannot get user by id in redis: %v", err.Error())
+	}
+
+	if cachedUser != nil {
+		return *cachedUser, nil
+	}
+
+	user, err := a.repo.GetUserByID(ctx, userID)
+
+	if err != nil {
+		a.log.Errorf("cannot get user by id in postgres: %v", err.Error())
+		return domain.User{}, err
+	}
+
+	if err := a.redis.SetByIdCtx(ctx, userID, &user); err != nil {
+		a.log.Errorf("cannot set user by id in redis: %v", err.Error())
+	}
+
+	return user, nil
 }

@@ -1,16 +1,13 @@
 package redis
 
 import (
+	"fmt"
 	"github.com/Verce11o/yata-auth/config"
 	"github.com/redis/go-redis/v9"
 )
 
 func NewRedis(cfg *config.Config) *redis.Client {
-	redisHost := cfg.Redis.Host
-
-	if redisHost == "" {
-		redisHost = ":6379"
-	}
+	redisHost := fmt.Sprintf("%v:%v", cfg.Redis.Host, cfg.Redis.Port)
 
 	client := redis.NewClient(&redis.Options{
 		Addr:     redisHost,

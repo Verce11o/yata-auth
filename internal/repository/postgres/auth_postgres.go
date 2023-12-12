@@ -81,15 +81,19 @@ func (s *AuthPostgres) GetUserByID(ctx context.Context, userID string) (domain.U
 
 	q := "SELECT * FROM users WHERE user_id = $1"
 
+	span.AddEvent("main query")
 	err := s.db.QueryRowxContext(ctx, q, userID).StructScan(&user)
 
+	span.AddEvent("checking for error")
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, sql.ErrNoRows
 	}
+
 	if err != nil {
 		return domain.User{}, grpc_errors.ErrInvalidCredentials
 	}
 
+	span.AddEvent("returning user")
 	return user, nil
 
 }
