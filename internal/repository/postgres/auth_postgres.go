@@ -10,17 +10,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type AuthPostgres struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	tracer trace.Tracer
 }
 
-func NewAuthPostgres(db *sqlx.DB) *AuthPostgres {
-	return &AuthPostgres{db: db}
+func NewAuthPostgres(db *sqlx.DB, tracer trace.Tracer) *AuthPostgres {
+	return &AuthPostgres{db: db, tracer: tracer}
 }
 
 func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) (string, error) {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.Register")
+	defer span.End()
+
 	var userID uuid.UUID
 
 	q := "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING user_id"
@@ -49,6 +54,9 @@ func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) 
 }
 
 func (s *AuthPostgres) GetUser(ctx context.Context, email string) (domain.User, error) {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.GetUser")
+	defer span.End()
+
 	var user domain.User
 
 	q := "SELECT * FROM users WHERE email = $1"
@@ -66,6 +74,9 @@ func (s *AuthPostgres) GetUser(ctx context.Context, email string) (domain.User, 
 }
 
 func (s *AuthPostgres) GetUserByID(ctx context.Context, userID string) (domain.User, error) {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.GetUserByID")
+	defer span.End()
+
 	var user domain.User
 
 	q := "SELECT * FROM users WHERE user_id = $1"

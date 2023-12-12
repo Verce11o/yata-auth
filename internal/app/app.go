@@ -6,10 +6,13 @@ import (
 	authGrpc "github.com/Verce11o/yata-auth/internal/handler/grpc"
 	"github.com/Verce11o/yata-auth/internal/lib/auth_jwt"
 	"github.com/Verce11o/yata-auth/internal/lib/logger"
+	"github.com/Verce11o/yata-auth/internal/lib/metrics/trace"
 	"github.com/Verce11o/yata-auth/internal/repository/postgres"
 	"github.com/Verce11o/yata-auth/internal/repository/redis"
 	"github.com/Verce11o/yata-auth/internal/service"
 	pb "github.com/Verce11o/yata-protos/gen/go/sso"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"google.golang.org/grpc"
 	"net"
 	"os"
@@ -20,18 +23,23 @@ import (
 func Run() {
 	log := logger.NewLogger()
 	cfg := config.LoadConfig()
+	tracer := trace.InitTracer("yata-auth")
+	//tracer := trace.InitTracer("Yata-Auth")
 
 	db := postgres.NewPostgres(cfg)
-	repo := postgres.NewAuthPostgres(db)
+	repo := postgres.NewAuthPostgres(db, tracer.Tracer)
 
 	rdb := redis.NewRedis(cfg)
 	redis := redis.NewAuthRedis(rdb)
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(
+		otelgrpc.WithTracerProvider(tracer.Provider),
+		otelgrpc.WithPropagators(propagation.TraceContext{}),
+	)))
 
-	authService := service.NewAuthService(log, repo, redis, auth_jwt.MakeJWTService(cfg.App.JWT))
+	authService := service.NewAuthService(log, tracer.Tracer, repo, redis, auth_jwt.MakeJWTService(cfg.App.JWT))
 
-	pb.RegisterAuthServer(s, authGrpc.NewAuthGRPC(log, authService))
+	pb.RegisterAuthServer(s, authGrpc.NewAuthGRPC(log, tracer.Tracer, authService))
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.App.Port))
 	if err != nil {
