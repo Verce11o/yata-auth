@@ -3,12 +3,13 @@ module github.com/Verce11o/yata-auth
 go 1.21.3
 
 require (
-	github.com/Verce11o/yata-protos v0.0.0-20231210164223-7bcc37d20149
+	github.com/Verce11o/yata-protos v0.0.0-20231214145517-2d0e2fe5543a
 	github.com/golang-jwt/jwt/v5 v5.1.0
 	github.com/google/uuid v1.3.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.2.0
+	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/redis/go-redis/v9 v9.3.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
 	go.opentelemetry.io/otel v1.21.0

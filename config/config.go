@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Postgres PostgresConfig `yaml:"postgres"`
 	Redis    RedisConfig    `yaml:"redis"`
+	RabbitMQ RabbitMQ       `yaml:"rabbitmq"`
 	App      App            `yaml:"app"`
 }
 
@@ -27,9 +28,21 @@ type RedisConfig struct {
 	DB       int    `yaml:"RedisDB" env:"REDISDB"`
 }
 
+type RabbitMQ struct {
+	Username     string `yaml:"username" env-required:"true"`
+	Password     string `yaml:"password" env-required:"true"`
+	Host         string `yaml:"host" env-required:"true"`
+	Port         string `yaml:"port" env-required:"true"`
+	ExchangeName string `yaml:"exchangeName" env-required:"true"`
+	QueueName    string `yaml:"queueName" env-required:"true"`
+	ConsumerTag  string `yaml:"consumerTag" env-required:"true"`
+	BindingKey   string `yaml:"bindingKey" env-required:"true"`
+}
+
 type App struct {
-	JWT  JWTConfig `yaml:"jwt"`
-	Port string    `yaml:"port"`
+	JWT           JWTConfig `yaml:"jwt"`
+	Port          string    `yaml:"port"`
+	EmailEndpoint string    `yaml:"email-endpoint" env-required:"true"`
 }
 
 type JWTConfig struct {

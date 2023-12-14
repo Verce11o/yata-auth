@@ -37,6 +37,33 @@ func (a *AuthGRPC) Register(ctx context.Context, input *pb.RegisterRequest) (*pb
 
 }
 
+func (a *AuthGRPC) VerifyUser(ctx context.Context, input *pb.VerifyRequest) (*pb.VerifyResponse, error) {
+	ctx, span := a.tracer.Start(ctx, "VerifyUser")
+	defer span.End()
+
+	err := a.service.VerifyUser(ctx, input)
+	if err != nil {
+		a.log.Errorf("VerifyUser: %v", err.Error())
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "VerifyUser: %v", err)
+	}
+
+	return &pb.VerifyResponse{}, nil
+
+}
+
+func (a *AuthGRPC) CheckVerify(ctx context.Context, input *pb.CheckVerifyRequest) (*pb.CheckVerifyResponse, error) {
+	ctx, span := a.tracer.Start(ctx, "CheckVerify")
+	defer span.End()
+
+	err := a.service.CheckVerify(ctx, input)
+
+	if err != nil {
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "CheckVerify: %v", err)
+	}
+
+	return &pb.CheckVerifyResponse{}, nil
+}
+
 func (a *AuthGRPC) Login(ctx context.Context, input *pb.LoginRequest) (*pb.LoginResponse, error) {
 	ctx, span := a.tracer.Start(ctx, "Login")
 	defer span.End()

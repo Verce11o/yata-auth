@@ -53,6 +53,70 @@ func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) 
 	return userID.String(), nil
 }
 
+func (s *AuthPostgres) AddVerificationCode(ctx context.Context, code string, userID string) error {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.AddVerificationCode")
+	defer span.End()
+
+	q := "INSERT INTO verification_codes (code, user_id) VALUES ($1, $2)"
+
+	err := s.db.QueryRowxContext(ctx, q, code, userID).Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *AuthPostgres) GetVerificationCode(ctx context.Context, codeID string) (*domain.VerificationCode, error) {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.GetVerificationCode")
+	defer span.End()
+
+	var verificationCode domain.VerificationCode
+
+	q := "SELECT code, user_id, expire_date FROM verification_codes WHERE code = $1"
+
+	err := s.db.QueryRowxContext(ctx, q, codeID).StructScan(&verificationCode)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &verificationCode, nil
+}
+
+func (s *AuthPostgres) ClearVerificationCode(ctx context.Context, userID string) error {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.ClearVerificationCode")
+	defer span.End()
+
+	q := "DELETE FROM verification_codes WHERE user_id = $1"
+
+	_, err := s.db.ExecContext(ctx, q, userID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *AuthPostgres) VerifyUser(ctx context.Context, userID string) (*domain.User, error) {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.VerifyUser")
+	defer span.End()
+
+	q := "UPDATE users SET is_verified = true, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 RETURNING *"
+
+	var user domain.User
+
+	if err := s.db.QueryRowxContext(ctx, q, userID).StructScan(&user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+
+}
+
 func (s *AuthPostgres) GetUser(ctx context.Context, email string) (domain.User, error) {
 	ctx, span := s.tracer.Start(ctx, "authPostgres.GetUser")
 	defer span.End()
@@ -62,11 +126,13 @@ func (s *AuthPostgres) GetUser(ctx context.Context, email string) (domain.User, 
 	q := "SELECT * FROM users WHERE email = $1"
 
 	err := s.db.QueryRowxContext(ctx, q, email).StructScan(&user)
+
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, sql.ErrNoRows
 	}
+
 	if err != nil {
-		return domain.User{}, grpc_errors.ErrInvalidCredentials
+		return domain.User{}, err
 	}
 
 	return user, nil

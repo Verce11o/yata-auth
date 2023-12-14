@@ -12,6 +12,16 @@ redis:
   RedisPassword:
   RedisDB: 0
 
+rabbitmq:
+  username: vercello
+  password: vercello
+  host: localhost
+  port: 5672
+  exchangeName: emails-exchange
+  queueName: emails-queue
+  consumerTag: emails-consumer
+  bindingKey: emails-routing-key
+
 
 app:
   jwt:
@@ -19,4 +29,5 @@ app:
     token_ttl_hours: 12
     salt: yata_vercello_salt
   port: 3999
+  email-endpoint: http://localhost:8080/api/user/activate
 

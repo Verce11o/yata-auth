@@ -8,6 +8,8 @@ import (
 
 type Auth interface {
 	Register(ctx context.Context, input *pb.RegisterRequest) (string, error)
+	VerifyUser(ctx context.Context, input *pb.VerifyRequest) error
+	CheckVerify(ctx context.Context, input *pb.CheckVerifyRequest) error
 	Login(ctx context.Context, input *pb.LoginRequest) (string, error)
 	GetByUUID(ctx context.Context, userID string) (domain.User, error)
 }
