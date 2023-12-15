@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"time"
 )
 
 type AuthService struct {
@@ -50,21 +51,25 @@ func (a *AuthService) VerifyUser(ctx context.Context, input *pb.VerifyRequest) e
 	ctx, span := a.tracer.Start(ctx, "authService.VerifyUser")
 	defer span.End()
 
+	user, err := a.GetByUUID(ctx, input.GetUserId())
+
+	if err != nil {
+		return err
+	}
+
+	if user.IsVerified {
+		return grpc_errors.ErrAlreadyVerified
+	}
+
 	code := uuid.NewString()
 
-	err := a.repo.ClearVerificationCode(ctx, input.GetUserId())
+	err = a.repo.ClearVerificationCode(ctx, input.GetUserId())
 
 	if err != nil {
 		return err
 	}
 
 	err = a.repo.AddVerificationCode(ctx, code, input.GetUserId())
-
-	if err != nil {
-		return err
-	}
-
-	user, err := a.GetByUUID(ctx, input.GetUserId())
 
 	if err != nil {
 		return err
@@ -107,10 +112,22 @@ func (a *AuthService) CheckVerify(ctx context.Context, input *pb.CheckVerifyRequ
 		return grpc_errors.ErrCodeInvalid
 	}
 
-	_, err = a.repo.VerifyUser(ctx, code.UserID.String())
+	if time.Now().UTC().After(code.ExpireDate) {
+		a.log.Errorf("code is expired")
+		return grpc_errors.ErrCodeExpired
+	}
+	// todo проверять expire кода
+	user, err := a.repo.VerifyUser(ctx, code.UserID.String())
 
 	if err != nil {
 		a.log.Errorf("cannot verify user: %v", err.Error())
+		return err
+	}
+
+	err = a.redis.DeleteUserCtx(ctx, user.UserID.String()) // maybe use set instead
+
+	if err != nil {
+		a.log.Errorf("cannot delete user in redis")
 		return err
 	}
 
