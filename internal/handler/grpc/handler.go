@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthGRPC struct {
@@ -90,5 +91,12 @@ func (a *AuthGRPC) GetUserByID(ctx context.Context, input *pb.GetUserRequest) (*
 		return nil, err
 	}
 
-	return &pb.GetUserResponse{UserId: user.UserID.String()}, nil
+	return &pb.GetUserResponse{
+		UserId:     user.UserID.String(),
+		Username:   user.Username,
+		Email:      user.Email,
+		IsVerified: user.IsVerified,
+		CreatedAt:  timestamppb.New(user.CreatedAt),
+		UpdatedAt:  timestamppb.New(user.UpdatedAt),
+	}, nil
 }
