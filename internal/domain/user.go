@@ -16,11 +16,13 @@ type User struct {
 }
 
 type SendUserEmailRequest struct {
+	Type string `json:"type"`
 	To   string `json:"to"`
 	Code string `json:"code"`
 }
 
 type VerificationCode struct {
+	Type       string    `json:"type" db:"type"`
 	Code       uuid.UUID `json:"code" db:"code"`
 	UserID     uuid.UUID `json:"user_id" db:"user_id"`
 	ExpireDate time.Time `json:"expire_date" db:"expire_date"`

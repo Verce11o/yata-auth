@@ -100,3 +100,30 @@ func (a *AuthGRPC) GetUserByID(ctx context.Context, input *pb.GetUserRequest) (*
 		UpdatedAt:  timestamppb.New(user.UpdatedAt),
 	}, nil
 }
+
+func (a *AuthGRPC) ForgotPassword(ctx context.Context, input *pb.ForgotPasswordRequest) (*pb.ForgotPasswordResponse, error) {
+	ctx, span := a.tracer.Start(ctx, "ForgotPassword")
+	defer span.End()
+
+	err := a.service.ForgotPassword(ctx, input)
+	if err != nil {
+		a.log.Errorf("ForgotPassword: %v", err.Error())
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "ForgotPassword: %v", err)
+	}
+
+	return &pb.ForgotPasswordResponse{}, nil
+}
+
+func (a *AuthGRPC) ResetPassword(ctx context.Context, input *pb.ResetPasswordRequest) (*pb.ResetPasswordResponse, error) {
+	ctx, span := a.tracer.Start(ctx, "ResetPassword")
+	defer span.End()
+
+	err := a.service.ResetPassword(ctx, input)
+	if err != nil {
+		a.log.Errorf("ResetPassword: %v", err.Error())
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "ResetPassword: %v", err)
+	}
+
+	return &pb.ResetPasswordResponse{}, nil
+
+}

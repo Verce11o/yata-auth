@@ -18,17 +18,18 @@ import (
 )
 
 type AuthService struct {
-	log            *zap.SugaredLogger
-	tracer         trace.Tracer
-	repo           repository.Repository
-	redis          repository.RedisRepository
-	emailPublisher email.EmailPublisher
-	emailEndpoint  string
-	jwtService     auth_jwt.JWTService
+	log                   *zap.SugaredLogger
+	tracer                trace.Tracer
+	repo                  repository.Repository
+	redis                 repository.RedisRepository
+	emailPublisher        email.EmailPublisher
+	emailEndpoint         string
+	passwordResetEndpoint string
+	jwtService            auth_jwt.JWTService
 }
 
-func NewAuthService(log *zap.SugaredLogger, tracer trace.Tracer, repo repository.Repository, redis repository.RedisRepository, emailPublisher email.EmailPublisher, emailEndpoint string, jwtService auth_jwt.JWTService) *AuthService {
-	return &AuthService{log: log, tracer: tracer, repo: repo, redis: redis, emailPublisher: emailPublisher, emailEndpoint: emailEndpoint, jwtService: jwtService}
+func NewAuthService(log *zap.SugaredLogger, tracer trace.Tracer, repo repository.Repository, redis repository.RedisRepository, emailPublisher email.EmailPublisher, emailEndpoint string, passwordResetEndpoint string, jwtService auth_jwt.JWTService) *AuthService {
+	return &AuthService{log: log, tracer: tracer, repo: repo, redis: redis, emailPublisher: emailPublisher, emailEndpoint: emailEndpoint, passwordResetEndpoint: passwordResetEndpoint, jwtService: jwtService}
 }
 
 func (a *AuthService) Register(ctx context.Context, input *pb.RegisterRequest) (string, error) {
@@ -63,12 +64,6 @@ func (a *AuthService) VerifyUser(ctx context.Context, input *pb.VerifyRequest) e
 
 	code := uuid.NewString()
 
-	err = a.repo.ClearVerificationCode(ctx, input.GetUserId())
-
-	if err != nil {
-		return err
-	}
-
 	err = a.repo.AddVerificationCode(ctx, code, input.GetUserId())
 
 	if err != nil {
@@ -76,6 +71,7 @@ func (a *AuthService) VerifyUser(ctx context.Context, input *pb.VerifyRequest) e
 	}
 
 	SendEmailRequest := domain.SendUserEmailRequest{
+		Type: "email",
 		To:   user.Email,
 		Code: fmt.Sprintf("%v?code=%v", a.emailEndpoint, code),
 	}
@@ -121,6 +117,13 @@ func (a *AuthService) CheckVerify(ctx context.Context, input *pb.CheckVerifyRequ
 
 	if err != nil {
 		a.log.Errorf("cannot verify user: %v", err.Error())
+		return err
+	}
+
+	err = a.repo.ClearVerificationCode(ctx, code.UserID.String())
+
+	if err != nil {
+		a.log.Errorf("cannot clear user codes")
 		return err
 	}
 
@@ -186,4 +189,50 @@ func (a *AuthService) GetByUUID(ctx context.Context, userID string) (domain.User
 	}
 
 	return user, nil
+}
+
+func (a *AuthService) ForgotPassword(ctx context.Context, input *pb.ForgotPasswordRequest) error {
+	ctx, span := a.tracer.Start(ctx, "authService.ForgotPassword")
+	defer span.End()
+
+	user, err := a.GetByUUID(ctx, input.GetUserId())
+
+	if err != nil {
+		return err
+	}
+
+	code := uuid.NewString()
+
+	err = a.repo.AddVerificationCode(ctx, code, input.GetUserId())
+
+	if err != nil {
+		return err
+	}
+
+	SendEmailRequest := domain.SendUserEmailRequest{
+		Type: "password-reset",
+		To:   user.Email,
+		Code: fmt.Sprintf("%v?code=%v", a.passwordResetEndpoint, code),
+	}
+
+	messageBytes, err := json.Marshal(SendEmailRequest)
+
+	if err != nil {
+		return err
+	}
+
+	err = a.emailPublisher.Publish(ctx, messageBytes)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (a *AuthService) ResetPassword(ctx context.Context, input *pb.ResetPasswordRequest) error {
+	ctx, span := a.tracer.Start(ctx, "authService.ResetPassword")
+	defer span.End()
+
 }

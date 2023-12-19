@@ -40,9 +40,10 @@ type RabbitMQ struct {
 }
 
 type App struct {
-	JWT           JWTConfig `yaml:"jwt"`
-	Port          string    `yaml:"port"`
-	EmailEndpoint string    `yaml:"email-endpoint" env-required:"true"`
+	JWT                   JWTConfig `yaml:"jwt"`
+	Port                  string    `yaml:"port"`
+	EmailEndpoint         string    `yaml:"email-endpoint" env-required:"true"`
+	PasswordResetEndpoint string    `yaml:"password_reset_endpoint" env-required:"true"`
 }
 
 type JWTConfig struct {
