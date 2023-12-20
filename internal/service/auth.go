@@ -17,6 +17,11 @@ import (
 	"time"
 )
 
+const (
+	EmailCodeType = "email"
+	PassCodeType  = "password"
+)
+
 type AuthService struct {
 	log                   *zap.SugaredLogger
 	tracer                trace.Tracer
@@ -64,14 +69,14 @@ func (a *AuthService) VerifyUser(ctx context.Context, input *pb.VerifyRequest) e
 
 	code := uuid.NewString()
 
-	err = a.repo.AddVerificationCode(ctx, code, input.GetUserId())
+	err = a.repo.AddVerificationCode(ctx, EmailCodeType, code, input.GetUserId())
 
 	if err != nil {
 		return err
 	}
 
 	SendEmailRequest := domain.SendUserEmailRequest{
-		Type: "email",
+		Type: EmailCodeType,
 		To:   user.Email,
 		Code: fmt.Sprintf("%v?code=%v", a.emailEndpoint, code),
 	}
@@ -112,7 +117,7 @@ func (a *AuthService) CheckVerify(ctx context.Context, input *pb.CheckVerifyRequ
 		a.log.Errorf("code is expired")
 		return grpc_errors.ErrCodeExpired
 	}
-	// todo проверять expire кода
+
 	user, err := a.repo.VerifyUser(ctx, code.UserID.String())
 
 	if err != nil {
@@ -120,7 +125,7 @@ func (a *AuthService) CheckVerify(ctx context.Context, input *pb.CheckVerifyRequ
 		return err
 	}
 
-	err = a.repo.ClearVerificationCode(ctx, code.UserID.String())
+	err = a.repo.ClearVerificationCode(ctx, code.UserID.String(), code.Type)
 
 	if err != nil {
 		a.log.Errorf("cannot clear user codes")
@@ -203,14 +208,14 @@ func (a *AuthService) ForgotPassword(ctx context.Context, input *pb.ForgotPasswo
 
 	code := uuid.NewString()
 
-	err = a.repo.AddVerificationCode(ctx, code, input.GetUserId())
+	err = a.repo.AddVerificationCode(ctx, PassCodeType, code, input.GetUserId())
 
 	if err != nil {
 		return err
 	}
 
 	SendEmailRequest := domain.SendUserEmailRequest{
-		Type: "password-reset",
+		Type: PassCodeType,
 		To:   user.Email,
 		Code: fmt.Sprintf("%v?code=%v", a.passwordResetEndpoint, code),
 	}
@@ -231,8 +236,67 @@ func (a *AuthService) ForgotPassword(ctx context.Context, input *pb.ForgotPasswo
 
 }
 
+func (a *AuthService) VerifyPassword(ctx context.Context, input *pb.VerifyPasswordRequest) error {
+	ctx, span := a.tracer.Start(ctx, "authService.VerifyPassword")
+	defer span.End()
+
+	code, err := a.repo.GetVerificationCode(ctx, input.GetCode())
+
+	if err != nil || code == nil {
+		a.log.Infof("cannot get pass code by id in postgres: %v", err.Error())
+		return grpc_errors.ErrGettingCode
+	}
+
+	if code.Code.String() != input.GetCode() {
+		a.log.Infof("invalid code: %v and %v", code.Code.String(), input.GetCode())
+		return grpc_errors.ErrCodeInvalid
+	}
+
+	if time.Now().UTC().After(code.ExpireDate) {
+		a.log.Errorf("code is expired")
+		return grpc_errors.ErrCodeExpired
+	}
+
+	return nil
+}
 func (a *AuthService) ResetPassword(ctx context.Context, input *pb.ResetPasswordRequest) error {
 	ctx, span := a.tracer.Start(ctx, "authService.ResetPassword")
 	defer span.End()
+
+	// README this may be useless because this method is only called when middleware on gateway works properly, so code checking is not required
+	//code, err := a.repo.GetVerificationCode(ctx, input.GetCode())
+	//
+	//if err != nil {
+	//	a.log.Errorf("cannot get pass code by id in postgres: %v", err.Error())
+	//	return grpc_errors.ErrGettingCode
+	//}
+	//
+	//if input.GetCode() != code.Code.String() {
+	//	a.log.Infof("invalid code: %v and %v", code.Code.String(), input.GetCode())
+	//	return grpc_errors.ErrCodeInvalid
+	//}
+
+	if input.GetPassword() != input.GetPasswordRe() {
+		a.log.Errorf("password mismatch")
+		return grpc_errors.ErrPasswordMismatch
+	}
+
+	hashedPass := a.jwtService.GenerateHashPassword(input.GetPassword())
+
+	err := a.repo.UpdatePassword(ctx, input.GetUserId(), hashedPass)
+
+	if err != nil {
+		a.log.Errorf("cannot update user password: %v", err.Error())
+		return err
+	}
+
+	err = a.repo.ClearVerificationCode(ctx, input.GetCode(), PassCodeType)
+
+	if err != nil {
+		a.log.Errorf("cannot clear user codes")
+		return err
+	}
+
+	return nil
 
 }

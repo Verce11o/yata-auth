@@ -14,6 +14,7 @@ var (
 	ErrNotFound           = errors.New("not found")
 	ErrCodeExpired        = errors.New("code is expired")
 	ErrCodeInvalid        = errors.New("code is invalid")
+	ErrPasswordMismatch   = errors.New("password mismatch")
 	ErrGettingCode        = errors.New("error getting code")
 	ErrAlreadyVerified    = errors.New("user already verified")
 )
@@ -34,6 +35,8 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 		return codes.DeadlineExceeded
 	case errors.Is(err, ErrAlreadyVerified):
 		return codes.AlreadyExists
+	case errors.Is(err, ErrPasswordMismatch):
+		return codes.InvalidArgument
 	case errors.Is(err, ErrNotFound):
 		return codes.NotFound
 	case errors.Is(err, redis.Nil):

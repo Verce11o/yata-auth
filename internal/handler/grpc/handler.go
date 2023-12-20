@@ -114,6 +114,19 @@ func (a *AuthGRPC) ForgotPassword(ctx context.Context, input *pb.ForgotPasswordR
 	return &pb.ForgotPasswordResponse{}, nil
 }
 
+func (a *AuthGRPC) VerifyPassword(ctx context.Context, input *pb.VerifyPasswordRequest) (*pb.VerifyPasswordResponse, error) {
+	ctx, span := a.tracer.Start(ctx, "VerifyPassword")
+	defer span.End()
+
+	err := a.service.VerifyPassword(ctx, input)
+	if err != nil {
+		a.log.Errorf("VerifyPassword: %v", err.Error())
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "VerifyPassword: %v", err)
+	}
+	return &pb.VerifyPasswordResponse{}, nil
+
+}
+
 func (a *AuthGRPC) ResetPassword(ctx context.Context, input *pb.ResetPasswordRequest) (*pb.ResetPasswordResponse, error) {
 	ctx, span := a.tracer.Start(ctx, "ResetPassword")
 	defer span.End()

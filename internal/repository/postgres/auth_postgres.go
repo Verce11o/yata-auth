@@ -53,13 +53,13 @@ func (s *AuthPostgres) Register(ctx context.Context, input *pb.RegisterRequest) 
 	return userID.String(), nil
 }
 
-func (s *AuthPostgres) AddVerificationCode(ctx context.Context, code string, userID string) error {
+func (s *AuthPostgres) AddVerificationCode(ctx context.Context, codeType string, code string, userID string) error {
 	ctx, span := s.tracer.Start(ctx, "authPostgres.AddVerificationCode")
 	defer span.End()
 
-	q := "INSERT INTO verification_codes (code, user_id) VALUES ($1, $2)"
+	q := "INSERT INTO verification_codes (type, code, user_id) VALUES ($1, $2, $3)"
 
-	err := s.db.QueryRowxContext(ctx, q, code, userID).Err()
+	err := s.db.QueryRowxContext(ctx, q, codeType, code, userID).Err()
 
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (s *AuthPostgres) GetVerificationCode(ctx context.Context, codeID string) (
 
 	var verificationCode domain.VerificationCode
 
-	q := "SELECT code, user_id, expire_date FROM verification_codes WHERE code = $1"
+	q := "SELECT type, code, user_id, expire_date FROM verification_codes WHERE code = $1"
 
 	err := s.db.QueryRowxContext(ctx, q, codeID).StructScan(&verificationCode)
 
@@ -86,13 +86,13 @@ func (s *AuthPostgres) GetVerificationCode(ctx context.Context, codeID string) (
 	return &verificationCode, nil
 }
 
-func (s *AuthPostgres) ClearVerificationCode(ctx context.Context, userID string) error {
+func (s *AuthPostgres) ClearVerificationCode(ctx context.Context, userID string, codeType string) error {
 	ctx, span := s.tracer.Start(ctx, "authPostgres.ClearVerificationCode")
 	defer span.End()
 
-	q := "DELETE FROM verification_codes WHERE user_id = $1"
+	q := "DELETE FROM verification_codes WHERE user_id = $1 AND type = $2"
 
-	_, err := s.db.ExecContext(ctx, q, userID)
+	_, err := s.db.ExecContext(ctx, q, userID, codeType)
 
 	if err != nil {
 		return err
@@ -161,5 +161,27 @@ func (s *AuthPostgres) GetUserByID(ctx context.Context, userID string) (domain.U
 
 	span.AddEvent("returning user")
 	return user, nil
+
+}
+
+func (s *AuthPostgres) UpdatePassword(ctx context.Context, userID string, password string) error {
+	ctx, span := s.tracer.Start(ctx, "authPostgres.GetUserByID")
+	defer span.End()
+
+	q := "UPDATE users SET password = $1 WHERE user_id = $2"
+
+	res, err := s.db.ExecContext(ctx, q, password, userID)
+
+	if err != nil {
+		return nil
+	}
+
+	rows, _ := res.RowsAffected()
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 
 }
