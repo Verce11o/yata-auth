@@ -263,19 +263,6 @@ func (a *AuthService) ResetPassword(ctx context.Context, input *pb.ResetPassword
 	ctx, span := a.tracer.Start(ctx, "authService.ResetPassword")
 	defer span.End()
 
-	// README this may be useless because this method is only called when middleware on gateway works properly, so code checking is not required
-	//code, err := a.repo.GetVerificationCode(ctx, input.GetCode())
-	//
-	//if err != nil {
-	//	a.log.Errorf("cannot get pass code by id in postgres: %v", err.Error())
-	//	return grpc_errors.ErrGettingCode
-	//}
-	//
-	//if input.GetCode() != code.Code.String() {
-	//	a.log.Infof("invalid code: %v and %v", code.Code.String(), input.GetCode())
-	//	return grpc_errors.ErrCodeInvalid
-	//}
-
 	if input.GetPassword() != input.GetPasswordRe() {
 		a.log.Errorf("password mismatch")
 		return grpc_errors.ErrPasswordMismatch

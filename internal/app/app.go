@@ -38,7 +38,7 @@ func Run() {
 	amqpConn := rabbitmq.NewAmqpConnection(cfg.RabbitMQ)
 	emailPublisher := rabbitmq.NewEmailPublisher(amqpConn, log, tracer.Tracer, cfg.RabbitMQ)
 
-	authService := service.NewAuthService(log, tracer.Tracer, repo, redis, emailPublisher, cfg.App.EmailEndpoint, auth_jwt.MakeJWTService(cfg.App.JWT))
+	authService := service.NewAuthService(log, tracer.Tracer, repo, redis, emailPublisher, cfg.App.EmailEndpoint, cfg.App.PasswordResetEndpoint, auth_jwt.MakeJWTService(cfg.App.JWT))
 
 	s := grpc.NewServer(grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor(
 		otelgrpc.WithTracerProvider(tracer.Provider),

@@ -23,6 +23,8 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return codes.NotFound
+	case errors.Is(err, ErrGettingCode):
+		return codes.InvalidArgument
 	case errors.Is(err, context.Canceled):
 		return codes.Canceled
 	case errors.Is(err, context.DeadlineExceeded):
@@ -32,7 +34,7 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 	case errors.Is(err, ErrInvalidCredentials):
 		return codes.Unauthenticated
 	case errors.Is(err, ErrCodeExpired):
-		return codes.DeadlineExceeded
+		return codes.InvalidArgument
 	case errors.Is(err, ErrAlreadyVerified):
 		return codes.AlreadyExists
 	case errors.Is(err, ErrPasswordMismatch):

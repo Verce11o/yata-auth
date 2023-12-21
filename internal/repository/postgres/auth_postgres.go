@@ -168,7 +168,7 @@ func (s *AuthPostgres) UpdatePassword(ctx context.Context, userID string, passwo
 	ctx, span := s.tracer.Start(ctx, "authPostgres.GetUserByID")
 	defer span.End()
 
-	q := "UPDATE users SET password = $1 WHERE user_id = $2"
+	q := "UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2"
 
 	res, err := s.db.ExecContext(ctx, q, password, userID)
 
